@@ -1,11 +1,19 @@
 # PyAtrea
 Python library for communication with Atrea ventilation units
 
+## Install:
+
+```
+python3 -m pip install pyatrea
+```
+
 ## Usage examples:
 
 ### Initiate library:
 ```
-atrea = Atrea("192.168.0.2","passwordOnAtreaWebsite")
+from pyatrea import pyatrea
+
+atrea = pyatrea.Atrea("192.168.0.2","passwordOnAtreaWebsite")
 ```
 
 ### Get status of your unit with human readable identifications (if available):
