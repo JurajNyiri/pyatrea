@@ -1,3 +1,14 @@
+#
+# Author: Juraj Nyiri
+# Tested with:
+# Atrea ECV 280 
+#
+# sw RD5 ver.:
+# 2.01.26
+# 2.01.3O
+# 2.01.32
+#
+
 import requests
 from xml.etree import ElementTree as ET
 import demjson
@@ -7,10 +18,10 @@ import string
 import random
 
 class Atrea:
-    def __init__(self, ip, password):
+    def __init__(self, ip, password, code=""):
         self.ip = ip
         self.password = password
-        self.code = ""
+        self.code = code
         self.translations = {}
 
     def getTranslations(self):
@@ -98,4 +109,67 @@ class Atrea:
                 return False
             else:
                 self.code = xmldoc.text
+        return False
+    
+    def setPower(self, power):
+        try:
+            power += 1
+        except TypeError:
+            return False
+        power -= 1
+
+        if(power < 99):
+            power = "0"+str(power)
+        elif(power < 10):
+            power = "00"+str(power)
+        url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070800'+str(power)+"&H1070000002"
+        response = requests.get(url)
+        return response.status_code == 200
+    
+    #0 = manual
+    #1 = weekly
+    def setProgram(self, program):
+        try:
+            program += 1
+        except TypeError:
+            return False
+        program -= 1
+        url = ''
+
+        if(program == 0):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000000&H1070100000&H1070200000&H1070300000'
+        elif(program == 1):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000001&H1070100001&H1070200001&H1070300001'
+        if(url != ''):
+            response = requests.get(url)
+            return response.status_code == 200
+
+        return False
+    
+    #0 = off
+    #1 = automat
+    #2 = ventilation
+    #3 = Night precooling
+    #4 = Disbalance
+    def setMode(self, mode):
+        try:
+            mode += 1
+        except TypeError:
+            return False
+        mode -= 1
+        url = ''
+        if(mode == 0):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900000&H1070100002'
+        elif(mode == 1):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900001&H1070100002'
+        elif(mode == 2):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900002&H1070100002'
+        elif(mode == 3):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900005&H1070100002'
+        elif(mode == 4):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900006&H1070100002'
+        if(url != ''):
+            response = requests.get(url)
+            return response.status_code == 200
+
         return False
