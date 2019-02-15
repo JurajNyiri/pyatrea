@@ -140,6 +140,8 @@ class Atrea:
             url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000000&H1070100000&H1070200000&H1070300000'
         elif(program == 1):
             url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000001&H1070100001&H1070200001&H1070300001'
+        elif(program == 2):
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000002&H1070100001&H1070200001&H1070300001'
         if(url != ''):
             response = requests.get(url)
             return response.status_code == 200
