@@ -122,7 +122,7 @@ class Atrea:
             power = "0"+str(power)
         elif(power < 10):
             power = "00"+str(power)
-        url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070800'+str(power)+"&H1070000002"
+        url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070800'+str(power)
         response = requests.get(url)
         return response.status_code == 200
     
@@ -161,15 +161,15 @@ class Atrea:
         mode -= 1
         url = ''
         if(mode == 0):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900000&H1070100002'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900000'
         elif(mode == 1):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900001&H1070100002'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900001'
         elif(mode == 2):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900002&H1070100002'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900002'
         elif(mode == 3):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900005&H1070100002'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900005'
         elif(mode == 4):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900006&H1070100002'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900006'
         if(url != ''):
             response = requests.get(url)
             return response.status_code == 200
