@@ -23,6 +23,7 @@ class Atrea:
         self.password = password
         self.code = code
         self.translations = {}
+        self.commands = {}
 
     def getTranslations(self):
         if not self.translations:
@@ -120,9 +121,21 @@ class Atrea:
 
         if(power < 99):
             power = "0"+str(power)
-        elif(power < 10):
+        elif(power < 10) and (power >= 0):
             power = "00"+str(power)
-        url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070800'+str(power)
+        elif(power == 100):
+            power = str(power)
+        else:
+            return False
+
+        self.commands['H10708'] = "00"+power
+        return True
+
+    def exec(self):
+        url = 'http://'+self.ip+'/config/xml.cgi?auth='+self.code
+        if(len(self.commands) > 0):
+            for register in self.commands:
+                url = url + "&" + register + self.commands[register]
         response = requests.get(url)
         return response.status_code == 200
     
@@ -135,17 +148,25 @@ class Atrea:
         except TypeError:
             return False
         program -= 1
-        url = ''
 
         if(program == 0):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000000&H1070100000&H1070200000&H1070300000'
+            self.commands['H10700'] = "00000"
+            self.commands['H10701'] = "00000"
+            self.commands['H10702'] = "00000"
+            self.commands['H10703'] = "00000"
+            return True
         elif(program == 1):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000001&H1070100001&H1070200001&H1070300001'
+            self.commands['H10700'] = "00001"
+            self.commands['H10701'] = "00001"
+            self.commands['H10702'] = "00001"
+            self.commands['H10703'] = "00001"
+            return True
         elif(program == 2):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070100002'
-        if(url != ''):
-            response = requests.get(url)
-            return response.status_code == 200
+            if 'H10700' in self.commands: self.commands.pop('H10700')
+            if 'H10702' in self.commands: self.commands.pop('H10702')
+            if 'H10703' in self.commands: self.commands.pop('H10703')
+            self.commands['H10701'] = "00002"
+            return True
 
         return False
     
@@ -160,19 +181,20 @@ class Atrea:
         except TypeError:
             return False
         mode -= 1
-        url = ''
         if(mode == 0):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900000'
+            self.commands['H10709'] = "00000"
+            return True
         elif(mode == 1):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900001'
+            self.commands['H10709'] = "00001"
+            return True
         elif(mode == 2):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900002'
+            self.commands['H10709'] = "00002"
+            return True
         elif(mode == 3):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900005'
+            self.commands['H10709'] = "00005"
+            return True
         elif(mode == 4):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070900006'
-        if(url != ''):
-            response = requests.get(url)
-            return response.status_code == 200
+            self.commands['H10709'] = "00006"
+            return True
 
         return False
