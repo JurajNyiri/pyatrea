@@ -136,8 +136,9 @@ class Atrea:
         if(len(self.commands) > 0):
             for register in self.commands:
                 url = url + "&" + register + self.commands[register]
-        response = requests.get(url)
-        return response.status_code == 200
+            response = requests.get(url)
+            return response.status_code == 200
+        return False
     
     #0 = manual
     #1 = weekly
