@@ -133,12 +133,27 @@ class Atrea:
 
     def exec(self):
         url = 'http://'+self.ip+'/config/xml.cgi?auth='+self.code
+        
         if(len(self.commands) > 0):
             for register in self.commands:
                 url = url + "&" + register + self.commands[register]
             response = requests.get(url)
             return response.status_code == 200
         return False
+    
+    def setTemperature(self, temperature):
+        try:
+            temperature += 1
+        except TypeError:
+            return False
+        temperature -= 1
+        if(temperature >= 10 and temperature <= 40):
+            temperature = str(int(temperature*10))
+            if(len(temperature) == 3):
+                self.commands['H10710'] = "00" + temperature
+                return True
+        return False
+        
     
     #0 = manual
     #1 = weekly
@@ -164,9 +179,9 @@ class Atrea:
             return True
         elif(program == 2):
             self.commands['H10700'] = "00002"
-            if 'H10702' in self.commands: self.commands.pop('H10702')
-            if 'H10703' in self.commands: self.commands.pop('H10703')
             self.commands['H10701'] = "00002"
+            self.commands['H10702'] = "00002"
+            if 'H10703' in self.commands: self.commands.pop('H10703')
             return True
 
         return False
