@@ -163,7 +163,7 @@ class Atrea:
             self.commands['H10703'] = "00001"
             return True
         elif(program == 2):
-            if 'H10700' in self.commands: self.commands.pop('H10700')
+            self.commands['H10700'] = "00002"
             if 'H10702' in self.commands: self.commands.pop('H10702')
             if 'H10703' in self.commands: self.commands.pop('H10703')
             self.commands['H10701'] = "00002"
