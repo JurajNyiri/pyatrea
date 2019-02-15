@@ -128,6 +128,7 @@ class Atrea:
     
     #0 = manual
     #1 = weekly
+    #2 = temporary
     def setProgram(self, program):
         try:
             program += 1
@@ -141,7 +142,7 @@ class Atrea:
         elif(program == 1):
             url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000001&H1070100001&H1070200001&H1070300001'
         elif(program == 2):
-            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070000002&H1070100001&H1070200001&H1070300001'
+            url='http://'+self.ip+'/config/xml.cgi?auth='+self.code+'&H1070100002'
         if(url != ''):
             response = requests.get(url)
             return response.status_code == 200
