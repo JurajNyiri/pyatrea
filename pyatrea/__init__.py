@@ -24,6 +24,7 @@ class Atrea:
         self.code = code
         self.translations = {}
         self.commands = {}
+        self.writable_modes = {}
 
     def getTranslations(self):
         if not self.translations:
@@ -101,6 +102,32 @@ class Atrea:
         else:
             return urllib.unquote(toBeTranslated) #pylint: disable=E1101
     
+    def loadSupportedModes(self):
+        status = self.getStatus()
+        if(status == False):
+            return False
+        try:
+            binary_writable_modes = '{0:08b}'.format(int(status['I12004']))
+            H11700 = int(status['H11700'])
+        except AttributeError:
+            return False
+            
+        for i in range(8):
+            if ((i == 3 or i == 4) and (int(H11700) == 0)):
+                self.writable_modes[i] = False
+            else:
+                if(int(binary_writable_modes[7-i]) == 0):
+                    self.writable_modes[i] = False
+                else:
+                    self.writable_modes[i] = True
+
+        return self.writable_modes != {}
+    
+    def getSupportedModes(self):
+        if(self.writable_modes == {}):
+            self.loadSupportedModes()
+        return self.writable_modes
+
     def auth(self):
         magic = hashlib.md5(("\r\n"+self.password).encode('utf-8')).hexdigest()
         response = requests.get('http://'+self.ip+'/config/login.cgi?magic='+magic+'&'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
@@ -193,6 +220,7 @@ class Atrea:
     #4 = Circulation
     #5 = Night precooling
     #6 = Disbalance
+    #7 = Overpressure
 
     def setMode(self, mode):
         try:
@@ -200,6 +228,12 @@ class Atrea:
         except TypeError:
             return False
         mode -= 1
+
+        supported_modes = self.getSupportedModes()
+
+        if(not supported_modes[mode]):
+            return False
+
         if(mode == 0):
             self.commands['H10709'] = "00000"
             return True
@@ -220,6 +254,9 @@ class Atrea:
             return True
         elif(mode == 6):
             self.commands['H10709'] = "00006"
+            return True
+        elif(mode == 7):
+            self.commands['H10709'] = "00007"
             return True
 
         return False
