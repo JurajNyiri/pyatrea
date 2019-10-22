@@ -155,9 +155,9 @@ class Atrea:
         return False
         
     
-    #0 = manual
-    #1 = weekly
-    #2 = temporary
+    #0 = Manual
+    #1 = Weekly
+    #2 = Temporary
     def setProgram(self, program):
         try:
             program += 1
@@ -186,9 +186,9 @@ class Atrea:
 
         return False
     
-    #0 = off
-    #1 = automat
-    #2 = ventilation
+    #0 = Off
+    #1 = Automat
+    #2 = Ventilation
     #3 = Circulation and Ventilation
     #4 = Circulation
     #5 = Night precooling
