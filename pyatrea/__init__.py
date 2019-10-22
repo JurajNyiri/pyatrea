@@ -189,8 +189,11 @@ class Atrea:
     #0 = off
     #1 = automat
     #2 = ventilation
-    #3 = Night precooling
-    #4 = Disbalance
+    #3 = Circulation and Ventilation
+    #4 = Circulation
+    #5 = Night precooling
+    #6 = Disbalance
+
     def setMode(self, mode):
         try:
             mode += 1
@@ -207,9 +210,15 @@ class Atrea:
             self.commands['H10709'] = "00002"
             return True
         elif(mode == 3):
-            self.commands['H10709'] = "00005"
+            self.commands['H10709'] = "00003"
             return True
         elif(mode == 4):
+            self.commands['H10709'] = "00004"
+            return True
+        elif(mode == 5):
+            self.commands['H10709'] = "00005"
+            return True
+        elif(mode == 6):
             self.commands['H10709'] = "00006"
             return True
 
