@@ -2,12 +2,12 @@
 # Author: Juraj Nyiri
 # Tested with:
 # Atrea ECV 280 
-#
 # sw RD5 ver.:
 # 2.01.26
 # 2.01.3O
 # 2.01.32
 #
+# Atrea Duplex 390
 
 import requests
 from xml.etree import ElementTree as ET
@@ -25,6 +25,63 @@ class Atrea:
         self.translations = {}
         self.commands = {}
         self.writable_modes = {}
+    
+    # Converted from the following JavaScript implementation from Atrea Duplex 390 scripts
+    # function lzw_decode(s) {
+    #     var dict = {};
+    #     var data = (s + "").split("");
+    #     var currChar = data[0];
+    #     var oldPhrase = currChar;
+    #     var out = [currChar];
+    #     var code = 512;
+    #     var phrase;
+    #     for (var i = 1; i < data.length; i++) {
+    #         var currCode = data[i].charCodeAt(0);
+    #         if (currCode < 512) {
+    #             phrase = data[i];
+    #         } else {
+    #             phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
+    #         }
+    #         out.push(phrase);
+    #         currChar = phrase.charAt(0);
+    #         dict[code] = oldPhrase + currChar;
+    #         code++;
+    #         oldPhrase = phrase;
+    #     }
+    #     return out.join("");
+    # }
+    def decompress(self, s):
+        dict = {}
+        data = list(s)
+        currChar = data[0]
+        oldPhrase = currChar
+        out = [currChar]
+        code = 512
+        for char in data[1:]:
+            currCode = ord(char)
+            if (currCode < 512):
+                phrase = char
+            elif (currCode in dict):
+                phrase = dict[currCode]
+            else:
+                phrase = oldPhrase + currChar
+            out.append(phrase)
+            currChar = phrase[0]
+            dict[code] = oldPhrase + currChar
+            code = code + 1
+            oldPhrase = phrase
+        return ''.join(out)
+
+    def parseTranslations(self, textNode):
+        for param in textNode.findall('params'):
+            data = demjson.decode(param.text)
+            for dataKey, dataValue in data.items():
+                self.translations['params'][dataKey] = dataValue
+        for word in textNode.findall('words'):
+            data = demjson.decode(word.text)
+            for dataKey, dataValue in data.items():
+                self.translations['words'][dataKey] = dataValue
+        return self.translations
 
     def getTranslations(self):
         if not self.translations:
@@ -33,15 +90,12 @@ class Atrea:
             response = requests.get('http://'+self.ip+'/lang/texts_2.xml?'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
             if(response.status_code == 200):
                 xmldoc = ET.fromstring(response.content)
-                for text in xmldoc.findall('texts'):
-                    for param in text.findall('params'):
-                        data = demjson.decode(param.text)
-                        for dataKey, dataValue in data.items():
-                            self.translations['params'][dataKey] = dataValue
-                    for word in text.findall('words'):
-                        data = demjson.decode(word.text)
-                        for dataKey, dataValue in data.items():
-                            self.translations['words'][dataKey] = dataValue
+                if (xmldoc.tag == 'compress'):
+                    text = ET.fromstring(self.decompress(xmldoc.text))
+                    self.parseTranslations(text)
+                else:
+                    for text in xmldoc.findall('texts'):
+                        self.parseTranslations(text)
         return self.translations
 
     def getParams(self):
@@ -73,11 +127,11 @@ class Atrea:
                     return False
             if(response.status_code == 200):
                 xmldoc = ET.fromstring(response.content)
-                for parentData in xmldoc.findall('RD5'):
-                    for data in list(parentData):
-                        for child in list(data):
-                            if(child.tag == "O"):
-                                status[child.attrib['I']] = child.attrib['V']
+                parentData = xmldoc[0] # Known paths to data nodes: /RD5WEB/RD5/ and /PCOWEB/PCO/
+                for data in list(parentData):
+                    for child in list(data):
+                        if(child.tag == "O"):
+                            status[child.attrib['I']] = child.attrib['V']
         return status
 
     def getTranslation(self, id):
