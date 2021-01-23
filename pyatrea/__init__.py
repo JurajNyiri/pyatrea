@@ -8,6 +8,8 @@
 # 2.01.32
 #
 # Atrea Duplex 390
+# Web ver.:
+# 74.11
 
 import requests
 from xml.etree import ElementTree as ET
@@ -26,30 +28,6 @@ class Atrea:
         self.commands = {}
         self.writable_modes = {}
     
-    # Converted from the following JavaScript implementation from Atrea Duplex 390 scripts
-    # function lzw_decode(s) {
-    #     var dict = {};
-    #     var data = (s + "").split("");
-    #     var currChar = data[0];
-    #     var oldPhrase = currChar;
-    #     var out = [currChar];
-    #     var code = 512;
-    #     var phrase;
-    #     for (var i = 1; i < data.length; i++) {
-    #         var currCode = data[i].charCodeAt(0);
-    #         if (currCode < 512) {
-    #             phrase = data[i];
-    #         } else {
-    #             phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
-    #         }
-    #         out.push(phrase);
-    #         currChar = phrase.charAt(0);
-    #         dict[code] = oldPhrase + currChar;
-    #         code++;
-    #         oldPhrase = phrase;
-    #     }
-    #     return out.join("");
-    # }
     def decompress(self, s):
         dict = {}
         data = list(s)
