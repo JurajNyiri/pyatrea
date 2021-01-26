@@ -8,8 +8,10 @@
 # 2.01.32
 #
 # Atrea Duplex 390
-# Web ver.:
-# 74.11
+# Driver: 71.16
+# RD4: 72.06
+# Digi: 73.17
+# Web: 74.11
 
 import requests
 from xml.etree import ElementTree as ET
