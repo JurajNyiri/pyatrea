@@ -1,7 +1,7 @@
 #
 # Author: Juraj Nyiri
 # Tested with:
-# Atrea ECV 280 
+# Atrea ECV 280
 # sw RD5 ver.:
 # 2.01.26
 # 2.01.3O
@@ -20,6 +20,22 @@ import urllib
 import hashlib
 import string
 import random
+from enum import IntEnum
+
+class AtreaProgram(IntEnum):
+    MANUAL = 0
+    WEEKLY = 1
+    TEMPORARY = 2
+
+class AtreaMode(IntEnum):
+    OFF = 0
+    AUTOMAT = 1
+    VENTILATION = 2
+    CIRCULATION_AND_VENTILATION = 3
+    CIRCULATION = 4
+    NIGHT_PRECOOLING = 5
+    DISBALANCE = 6
+    OVERPRESSURE = 7
 
 class Atrea:
     def __init__(self, ip, password, code=""):
@@ -27,8 +43,11 @@ class Atrea:
         self.password = password
         self.code = code
         self.translations = {}
+        self.status = {}
+        self.params = {}
         self.commands = {}
         self.writable_modes = {}
+        self.modesToIds = {}
     
     def decompress(self, s):
         dict = {}
@@ -79,24 +98,42 @@ class Atrea:
         return self.translations
 
     def getParams(self):
-        params = {}
-        params['warning'] = []
-        params['alert'] = []
-        response = requests.get('http://'+self.ip+'/user/params.xml?'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
-        if(response.status_code == 200):
-            xmldoc = ET.fromstring(response.content)
-            for param in xmldoc.findall('params'):
-                for child in list(param):
-                    if(child.tag == "i"):
-                        if 'flag' in child.attrib and 'id' in child.attrib :
-                            if(child.attrib['flag'] == "W"):
-                                params['warning'].append(child.attrib['id'])
-                            elif(child.attrib['flag'] == "A"):
-                                params['alert'].append(child.attrib['id'])
-        return params
+        if not self.params:
+            self.params = {}
+            self.params['warning'] = []
+            self.params['alert'] = []
+            self.params['ids'] = []
+            self.params['coefs'] = {}
+            self.params['offsets'] = {}
+            response = requests.get('http://'+self.ip+'/user/params.xml?'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
+            if(response.status_code == 200):
+                xmldoc = ET.fromstring(response.content)
+                for param in xmldoc.findall('params'):
+                    for child in list(param):
+                        if(child.tag == "i"):
+                            if('id' in child.attrib):
+                                id = child.attrib['id']
+                                self.params['ids'].append(id)
+                                if('flag' in child.attrib):
+                                    if(child.attrib['flag'] == "W"):
+                                        self.params['warning'].append(id)
+                                    elif(child.attrib['flag'] == "A"):
+                                        self.params['alert'].append(id)
+
+                                if('coef' in child.attrib):
+                                    self.params['coefs'][id] = float(child.attrib['coef'])
+                                
+                                if('offset' in child.attrib):
+                                    self.params['offsets'][id] = float(child.attrib['offset'])
+        return self.params
 
     def getStatus(self):
-        status = {}
+        if not self.status:
+            self.refreshStatus()
+        return self.status
+    
+    def refreshStatus(self):
+        self.status = {}
         response = requests.get('http://'+self.ip+'/config/xml.xml?auth='+self.code+'&'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
 
         if(response.status_code == 200):
@@ -111,8 +148,8 @@ class Atrea:
                 for data in list(parentData):
                     for child in list(data):
                         if(child.tag == "O"):
-                            status[child.attrib['I']] = child.attrib['V']
-        return status
+                            self.status[child.attrib['I']] = child.attrib['V']
+        return self.status
 
     def getTranslation(self, id):
         translations = self.getTranslations()
@@ -140,20 +177,62 @@ class Atrea:
         status = self.getStatus()
         if(status == False):
             return False
-        try:
-            binary_writable_modes = '{0:08b}'.format(int(status['I12004']))
-            H11700 = int(status['H11700'])
-        except AttributeError:
-            return False
-            
-        for i in range(8):
-            if ((i == 3 or i == 4) and (int(H11700) == 0)):
-                self.writable_modes[i] = False
-            else:
-                if(int(binary_writable_modes[7-i]) == 0):
+        
+        for mode in list(AtreaMode):
+            self.writable_modes[mode] = False
+        
+        if('I12004' in status and 'H11700' in status):
+            try:
+                binary_writable_modes = '{0:08b}'.format(int(status['I12004']))
+                H11700 = int(status['H11700'])
+            except AttributeError:
+                return False
+                
+            for i in range(8):
+                if ((i == 3 or i == 4) and (int(H11700) == 0)):
                     self.writable_modes[i] = False
                 else:
-                    self.writable_modes[i] = True
+                    if(int(binary_writable_modes[7-i]) == 0):
+                        self.writable_modes[i] = False
+                    else:
+                        self.writable_modes[i] = True
+        else:
+            response = requests.get('http://'+self.ip+'/lang/userCtrl.xml?'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
+            if(response.status_code == 200):
+                xmldoc = ET.fromstring(response.content)
+                modeEcNode = xmldoc.find("./layout/options/op[@id='ModeEC']")
+                if(modeEcNode):
+                    for option in modeEcNode:
+                        if('title' in option.attrib):
+                            title = option.attrib['title']
+                            mode = None
+                            if(title == '$perVentilation'):
+                                mode = AtreaMode.CIRCULATION_AND_VENTILATION
+                            elif(title == '$ventilation'):
+                                mode = AtreaMode.VENTILATION
+                            elif(title == '$circulation'):
+                                mode = AtreaMode.CIRCULATION
+                            #elif(title == '$startUp'):
+                                #mode = AtreaMode.
+                            #elif(title == '$runDown'):
+                                #mode = AtreaMode.
+                            #elif(title == '$defrosting'):
+                                #mode = AtreaMode.
+                            #elif(title == '$external'):
+                                #mode = AtreaMode.
+                            #elif(title == '$hpDefrosting'):
+                                #mode = AtreaMode.
+                            elif(title == '$nightBefCool'):
+                                mode = AtreaMode.NIGHT_PRECOOLING
+                            
+                            if(mode):
+                                self.modesToIds[mode] = int(option.attrib['id'])
+                                if((not 'rw' in option.attrib) or option.attrib['rw'] == '1'):
+                                    self.writable_modes[mode] = True
+                else:
+                    return False
+            else:
+                return False
 
         return self.writable_modes != {}
     
@@ -161,6 +240,25 @@ class Atrea:
         if(self.writable_modes == {}):
             self.loadSupportedModes()
         return self.writable_modes
+    
+    def getValue(self, key):
+        status = self.getStatus()
+        if(key in status):
+            value = float(status[key])
+            params = self.getParams()
+            if(key in params['offsets']):
+                value -= params['offsets'][key]
+            if(key in params['coefs']):
+                value /= params['coefs'][key]
+            return value
+        return False
+    
+    def getFirstValidValue(self, *keys):
+        status = self.getStatus()
+        for key in keys:
+            if(key in status):
+                return self.getValue(key)
+        return False
 
     def auth(self):
         magic = hashlib.md5(("\r\n"+self.password).encode('utf-8')).hexdigest()
@@ -180,16 +278,11 @@ class Atrea:
             return False
         power -= 1
 
-        if(power < 99):
-            power = "0"+str(power)
-        elif(power < 10) and (power >= 0):
-            power = "00"+str(power)
-        elif(power == 100):
-            power = str(power)
-        else:
+        if(power < 0 or power > 100):
             return False
 
-        self.commands['H10708'] = "00"+power
+        self.setCommand('H10708', power)
+        self.setCommand('H01020', power)
         return True
 
     def exec(self):
@@ -208,17 +301,22 @@ class Atrea:
         except TypeError:
             return False
         temperature -= 1
+
         if(temperature >= 10 and temperature <= 40):
-            temperature = str(int(temperature*10))
-            if(len(temperature) == 3):
-                self.commands['H10710'] = "00" + temperature
-                return True
+            self.setCommand('H10710', temperature)
+            self.setCommand('H01021', temperature)
+            return True
         return False
-        
+
+    def setCommand(self, id, value):
+        params = self.getParams()
+        if(id in params['ids']):
+            if(id in params['coefs']):
+                value = int(value * params['coefs'][id])
+            if(id in params['offsets']):
+                value = int(value + params['offsets'][id])
+            self.commands[id] = f'{value:05}'
     
-    #0 = Manual
-    #1 = Weekly
-    #2 = Temporary
     def setProgram(self, program):
         try:
             program += 1
@@ -226,36 +324,36 @@ class Atrea:
             return False
         program -= 1
 
-        if(program == 0):
-            self.commands['H10700'] = "00000"
-            self.commands['H10701'] = "00000"
-            self.commands['H10702'] = "00000"
-            self.commands['H10703'] = "00000"
+        if(program == AtreaProgram.MANUAL):
+            self.setCommand('H10700', 0)
+            self.setCommand('H10701', 0)
+            self.setCommand('H10702', 0)
+            self.setCommand('H10703', 0)
+            self.setCommand('H01015', 1)
+            self.setCommand('H01016', 1)
+            self.setCommand('H01017', 1)
             return True
-        elif(program == 1):
-            self.commands['H10700'] = "00001"
-            self.commands['H10701'] = "00001"
-            self.commands['H10702'] = "00001"
-            self.commands['H10703'] = "00001"
+        elif(program == AtreaProgram.WEEKLY):
+            self.setCommand('H10700', 1)
+            self.setCommand('H10701', 1)
+            self.setCommand('H10702', 1)
+            self.setCommand('H10703', 1)
+            self.setCommand('H01015', 0)
+            self.setCommand('H01016', 0)
+            self.setCommand('H01017', 0)
             return True
-        elif(program == 2):
-            self.commands['H10700'] = "00002"
-            self.commands['H10701'] = "00002"
-            self.commands['H10702'] = "00002"
+        elif(program == AtreaProgram.TEMPORARY):
+            self.setCommand('H10700', 2)
+            self.setCommand('H10701', 2)
+            self.setCommand('H10702', 2)
             if 'H10703' in self.commands: self.commands.pop('H10703')
+            self.setCommand('H01015', 2)
+            self.setCommand('H01016', 2)
+            self.setCommand('H01017', 2)
             return True
 
         return False
     
-    #0 = Off
-    #1 = Automat
-    #2 = Ventilation
-    #3 = Circulation and Ventilation
-    #4 = Circulation
-    #5 = Night precooling
-    #6 = Disbalance
-    #7 = Overpressure
-
     def setMode(self, mode):
         try:
             mode += 1
@@ -263,34 +361,15 @@ class Atrea:
             return False
         mode -= 1
 
-        supported_modes = self.getSupportedModes()
-
-        if(not supported_modes[mode]):
+        supportedModes = self.getSupportedModes()
+        if(not supportedModes[mode]):
             return False
 
-        if(mode == 0):
-            self.commands['H10709'] = "00000"
-            return True
-        elif(mode == 1):
-            self.commands['H10709'] = "00001"
-            return True
-        elif(mode == 2):
-            self.commands['H10709'] = "00002"
-            return True
-        elif(mode == 3):
-            self.commands['H10709'] = "00003"
-            return True
-        elif(mode == 4):
-            self.commands['H10709'] = "00004"
-            return True
-        elif(mode == 5):
-            self.commands['H10709'] = "00005"
-            return True
-        elif(mode == 6):
-            self.commands['H10709'] = "00006"
-            return True
-        elif(mode == 7):
-            self.commands['H10709'] = "00007"
-            return True
+        if(mode in self.modesToIds):
+            id = self.modesToIds[mode]
+        else:
+            id = mode
 
-        return False
+        self.setCommand('H10709', id)
+        self.setCommand('H01019', id)
+        return True
