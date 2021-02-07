@@ -29,13 +29,25 @@ class AtreaProgram(IntEnum):
 
 class AtreaMode(IntEnum):
     OFF = 0
-    AUTOMAT = 1
+    AUTOMATIC = 1
     VENTILATION = 2
     CIRCULATION_AND_VENTILATION = 3
     CIRCULATION = 4
     NIGHT_PRECOOLING = 5
     DISBALANCE = 6
     OVERPRESSURE = 7
+    PERIODIC_VENTILATION = 8
+    STARTUP = 9
+    RUNDOWN = 10
+    DEFROSTING = 11
+    EXTERNAL = 12
+    HP_DEFROSTING = 13
+    IN1 = 14
+    IN2 = 15
+    D1 = 16
+    D2 = 17
+    D3 = 18
+    D4 = 19
 
 class Atrea:
     def __init__(self, ip, password, code=""):
@@ -48,6 +60,7 @@ class Atrea:
         self.commands = {}
         self.writable_modes = {}
         self.modesToIds = {}
+        self.idsToModes = {}
     
     def decompress(self, s):
         dict = {}
@@ -207,26 +220,39 @@ class Atrea:
                             title = option.attrib['title']
                             mode = None
                             if(title == '$perVentilation'):
-                                mode = AtreaMode.CIRCULATION_AND_VENTILATION
+                                mode = AtreaMode.PERIODIC_VENTILATION
                             elif(title == '$ventilation'):
                                 mode = AtreaMode.VENTILATION
                             elif(title == '$circulation'):
                                 mode = AtreaMode.CIRCULATION
-                            #elif(title == '$startUp'):
-                                #mode = AtreaMode.
-                            #elif(title == '$runDown'):
-                                #mode = AtreaMode.
-                            #elif(title == '$defrosting'):
-                                #mode = AtreaMode.
-                            #elif(title == '$external'):
-                                #mode = AtreaMode.
-                            #elif(title == '$hpDefrosting'):
-                                #mode = AtreaMode.
+                            elif(title == '$startUp'):
+                                mode = AtreaMode.STARTUP
+                            elif(title == '$runDown'):
+                                mode = AtreaMode.RUNDOWN
+                            elif(title == '$defrosting'):
+                                mode = AtreaMode.DEFROSTING
+                            elif(title == '$external'):
+                                mode = AtreaMode.EXTERNAL
+                            elif(title == '$hpDefrosting'):
+                                mode = AtreaMode.HP_DEFROSTING
                             elif(title == '$nightBefCool'):
                                 mode = AtreaMode.NIGHT_PRECOOLING
+                            elif(title == 'IN1'):
+                                mode = AtreaMode.IN1
+                            elif(title == 'IN2'):
+                                mode = AtreaMode.IN2
+                            elif(title == 'D1'):
+                                mode = AtreaMode.D1
+                            elif(title == 'D2'):
+                                mode = AtreaMode.D2
+                            elif(title == 'D3'):
+                                mode = AtreaMode.D3
+                            elif(title == 'D4'):
+                                mode = AtreaMode.D4
                             
                             if(mode):
                                 self.modesToIds[mode] = int(option.attrib['id'])
+                                self.idsToModes[int(option.attrib['id'])] = mode
                                 if((not 'rw' in option.attrib) or option.attrib['rw'] == '1'):
                                     self.writable_modes[mode] = True
                 else:
@@ -241,17 +267,48 @@ class Atrea:
             self.loadSupportedModes()
         return self.writable_modes
     
+    def getMode(self):
+        status = self.getStatus()
+        if('H10705' in status):
+            return AtreaMode(self.getValue('H10705'))
+        elif('H01000' in status):
+            return self.idsToModes[self.getValue('H01000')]
+    
+    def loadUserLabels(self):
+        labels = {}
+        response = requests.get('http://'+self.ip+'/config/texts.xml?'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
+        if(response.status_code == 200):
+            xmldoc = ET.fromstring(response.content)
+            textsNode = xmldoc.find("texts")
+            if(textsNode):
+                for text in textsNode:
+                    labels[text.attrib['id']] = text.attrib['value']
+        return labels
+    
+    def getProgram(self):
+        status = self.getStatus()
+        if('H10701' in status):
+            value = self.getValue('H10701')
+            if value == 0: return AtreaProgram.MANUAL
+            if value == 1: return AtreaProgram.WEEKLY
+            if value == 2: return AtreaProgram.TEMPORARY
+        if('H01015' in status):
+            value = self.getValue('H01015')
+            if value == 1: return AtreaProgram.MANUAL
+            if value == 0: return AtreaProgram.WEEKLY
+            if value == 2: return AtreaProgram.TEMPORARY
+    
     def getValue(self, key):
         status = self.getStatus()
         if(key in status):
-            value = float(status[key])
+            value = int(status[key])
             params = self.getParams()
             if(key in params['offsets']):
                 value -= params['offsets'][key]
             if(key in params['coefs']):
                 value /= params['coefs'][key]
             return value
-        return False
+        return None
     
     def getFirstValidValue(self, *keys):
         status = self.getStatus()
@@ -368,7 +425,7 @@ class Atrea:
         if(mode in self.modesToIds):
             id = self.modesToIds[mode]
         else:
-            id = mode
+            id = int(mode)
 
         self.setCommand('H10709', id)
         self.setCommand('H01019', id)
