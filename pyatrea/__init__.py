@@ -310,13 +310,6 @@ class Atrea:
             return value
         return None
     
-    def getFirstValidValue(self, *keys):
-        status = self.getStatus()
-        for key in keys:
-            if(key in status):
-                return self.getValue(key)
-        return False
-
     def auth(self):
         magic = hashlib.md5(("\r\n"+self.password).encode('utf-8')).hexdigest()
         response = requests.get('http://'+self.ip+'/config/login.cgi?magic='+magic+'&'+random.choice(string.ascii_letters)+random.choice(string.ascii_letters))
