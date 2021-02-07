@@ -119,8 +119,8 @@ class Atrea:
                         self.parseTranslations(text)
         return self.translations
 
-    def getParams(self):
-        if not self.params:
+    def getParams(self, useCache=True):
+        if not self.params or not useCache:
             self.params = {}
             self.params["warning"] = []
             self.params["alert"] = []
@@ -159,8 +159,8 @@ class Atrea:
                                     )
         return self.params
 
-    def getStatus(self):
-        if not self.status:
+    def getStatus(self, useCache=True):
+        if not self.status or not useCache:
             self.refreshStatus()
         return self.status
 
@@ -245,10 +245,7 @@ class Atrea:
                 if (i == 3 or i == 4) and (int(H11700) == 0):
                     self.writable_modes[i] = False
                 else:
-                    if int(binary_writable_modes[7 - i]) == 0:
-                        self.writable_modes[i] = False
-                    else:
-                        self.writable_modes[i] = True
+                    self.writable_modes[i] = int(binary_writable_modes[7 - i]) != 0
         else:
             response = requests.get(
                 "http://"
@@ -327,7 +324,9 @@ class Atrea:
         response = requests.get(
             "http://"
             + self.ip
-            + "/config/texts.xml?"
+            + "/config/texts.xml?auth="
+            + self.code
+            + "&"
             + random.choice(string.ascii_letters)
             + random.choice(string.ascii_letters)
         )
@@ -341,8 +340,8 @@ class Atrea:
 
     def getProgram(self):
         status = self.getStatus()
-        if "H10701" in status:
-            value = self.getValue("H10701")
+        if "H10700" in status:
+            value = self.getValue("H10700")
             if value == 0:
                 return AtreaProgram.MANUAL
             if value == 1:
@@ -396,7 +395,7 @@ class Atrea:
             return False
         power -= 1
 
-        if power < 0 or power > 100:
+        if power < 12 or power > 100:
             return False
 
         self.setCommand("H10708", power)
@@ -421,14 +420,15 @@ class Atrea:
         temperature -= 1
 
         if temperature >= 10 and temperature <= 40:
-            self.setCommand("H10710", temperature)
+            self.setCommand("H10710", int(temperature * 10))
             self.setCommand("H01021", temperature)
             return True
         return False
 
     def setCommand(self, id, value):
         params = self.getParams()
-        if id in params["ids"]:
+        status = self.getStatus()
+        if id in params["ids"] or id in status:
             if id in params["coefs"]:
                 value = int(value * params["coefs"][id])
             if id in params["offsets"]:
