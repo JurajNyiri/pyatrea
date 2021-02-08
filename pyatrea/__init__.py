@@ -161,47 +161,43 @@ class Atrea:
 
     def getStatus(self, useCache=True):
         if not self.status or not useCache:
-            self.refreshStatus()
-        return self.status
+            self.status = {}
+            response = requests.get(
+                "http://"
+                + self.ip
+                + "/config/xml.xml?auth="
+                + self.code
+                + "&"
+                + random.choice(string.ascii_letters)
+                + random.choice(string.ascii_letters)
+            )
 
-    def refreshStatus(self):
-        self.status = {}
-        response = requests.get(
-            "http://"
-            + self.ip
-            + "/config/xml.xml?auth="
-            + self.code
-            + "&"
-            + random.choice(string.ascii_letters)
-            + random.choice(string.ascii_letters)
-        )
-
-        if response.status_code == 200:
-            if "HTTP: 403 Forbidden" in response.text:
-                self.auth()
-                response = requests.get(
-                    "http://"
-                    + self.ip
-                    + "/config/xml.xml?auth="
-                    + self.code
-                    + "&"
-                    + random.choice(string.ascii_letters)
-                    + random.choice(string.ascii_letters)
-                )
-                if (
-                    response.status_code == 200
-                    and "HTTP: 403 Forbidden" in response.text
-                ):
-                    return False
             if response.status_code == 200:
-                xmldoc = ET.fromstring(response.content)
-                parentData = xmldoc[
-                    0
-                ]  # Known paths to data nodes: /RD5WEB/RD5/ and /PCOWEB/PCO/
-                for data in list(parentData):
-                    for child in list(data):
-                        if child.tag == "O":
-                            self.status[child.attrib["I"]] = child.attrib["V"]
+                if "HTTP: 403 Forbidden" in response.text:
+                    self.auth()
+                    response = requests.get(
+                        "http://"
+                        + self.ip
+                        + "/config/xml.xml?auth="
+                        + self.code
+                        + "&"
+                        + random.choice(string.ascii_letters)
+                        + random.choice(string.ascii_letters)
+                    )
+                    if (
+                        response.status_code == 200
+                        and "HTTP: 403 Forbidden" in response.text
+                    ):
+                        return False
+                if response.status_code == 200:
+                    xmldoc = ET.fromstring(response.content)
+                    parentData = xmldoc[
+                        0
+                    ]  # Known paths to data nodes: /RD5WEB/RD5/ and /PCOWEB/PCO/
+                    for data in list(parentData):
+                        for child in list(data):
+                            if child.tag == "O":
+                                self.status[child.attrib["I"]] = child.attrib["V"]
         return self.status
 
     def getTranslation(self, id):
