@@ -224,7 +224,7 @@ class Atrea:
 
     def loadSupportedModes(self):
         status = self.getStatus()
-        if status == False:
+        if status is False:
             return False
 
         for mode in list(AtreaMode):
@@ -292,7 +292,7 @@ class Atrea:
                             if mode:
                                 self.modesToIds[mode] = int(option.attrib["id"])
                                 self.idsToModes[int(option.attrib["id"])] = mode
-                                if (not "rw" in option.attrib) or option.attrib[
+                                if ("rw" not in option.attrib) or option.attrib[
                                     "rw"
                                 ] == "1":
                                     self.writable_modes[mode] = True
