@@ -246,7 +246,8 @@ class Atrea:
             response = requests.get(
                 "http://"
                 + self.ip
-                + "/lang/userCtrl.xml?"
+                + "/lang/userCtrl.xml?auth="
+                + self.code
                 + random.choice(string.ascii_letters)
                 + random.choice(string.ascii_letters)
             )
