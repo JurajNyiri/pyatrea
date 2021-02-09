@@ -248,6 +248,7 @@ class Atrea:
                 + self.ip
                 + "/lang/userCtrl.xml?auth="
                 + self.code
+                + "&"
                 + random.choice(string.ascii_letters)
                 + random.choice(string.ascii_letters)
             )
