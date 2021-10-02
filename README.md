@@ -11,7 +11,7 @@ python3 -m pip install pyatrea
 
 ### Initiate library:
 ```
-from pyatrea import pyatrea
+from pyatrea import Atrea
 
 atrea = pyatrea.Atrea("192.168.0.2","passwordOnAtreaWebsite")
 ```
