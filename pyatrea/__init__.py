@@ -129,8 +129,6 @@ class Atrea:
 
     def getConfigDir(self):
         if not self.configDir:
-            self.translations["params"] = {}
-            self.translations["words"] = {}
             response = requests.get(
                 "http://"
                 + self.ip
