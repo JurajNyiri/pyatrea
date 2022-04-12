@@ -137,6 +137,11 @@ class Atrea:
                 self.configDir = ET.fromstring(response.content)
         return self.configDir
 
+    def findChild(self, element, id):
+        for child in element:
+            if "id" in child.attrib and child.attrib["id"].lstrip("0") == id:
+                return child
+
     def getModel(self):
         status = self.getStatus()
         configDir = self.getConfigDir()
@@ -146,28 +151,20 @@ class Atrea:
         data["category"] = ""
         data["model"] = ""
 
-        for main in configDir:
-            if (
-                "id" in main.attrib
-                and main.attrib["id"].lstrip("0") == status["H10520"]
-            ):
-                data["main"] = main.attrib["name"]
-                for category in main:
-                    if (
-                        "id" in category.attrib
-                        and category.attrib["id"].lstrip("0") == status["H10521"]
-                    ):
-                        data["category"] = category.attrib["name"]
-                        for model in category:
-                            if (
-                                "id" in model.attrib
-                                and model.attrib["id"].lstrip("0") == status["H10522"]
-                            ):
-                                data["model"] = model.attrib["name"]
-                                break
-                        break
-                break
+        main = self.findChild(configDir, status["H10520"])
+        data["main"] = main.attrib["name"]
+        category = self.findChild(main, status["H10521"])
+        data["category"] = category.attrib["name"]
+        model = self.findChild(category, status["H10522"])
+        data["model"] = model.attrib["name"]
         return data
+
+    def getID(self):
+        status = self.getStatus()
+        txt = ""
+        for i in range(300, 310):
+            txt += chr(int(status["H12" + str(i)]))
+        return txt
 
     def getParams(self, useCache=True):
         if not self.params or not useCache:
