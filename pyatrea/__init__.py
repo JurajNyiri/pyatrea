@@ -58,6 +58,8 @@ class Atrea:
         self.password = password
         self.code = code
         self.translations = {}
+        self.translations["params"] = {}
+        self.translations["words"] = {}
         self.status = {}
         self.params = {}
         self.commands = {}
@@ -65,6 +67,7 @@ class Atrea:
         self.modesToIds = {}
         self.idsToModes = {}
         self.configDir = {}
+        self.gettingTranslations = False
 
     def decompress(self, s):
         dict = {}
@@ -104,9 +107,8 @@ class Atrea:
             not self.translations
             or self.translations["params"] == {}
             or self.translations["words"] == {}
-        ):
-            self.translations["params"] = {}
-            self.translations["words"] = {}
+        ) and not self.gettingTranslations:
+            self.gettingTranslations = True
             response = requests.get(
                 "http://"
                 + self.ip
@@ -122,6 +124,7 @@ class Atrea:
                 else:
                     for text in xmldoc.findall("texts"):
                         self.parseTranslations(text)
+            self.gettingTranslations = False
         return self.translations
 
     def getConfigDir(self):
