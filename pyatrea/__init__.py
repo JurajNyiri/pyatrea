@@ -512,6 +512,11 @@ class Atrea:
                 value = int(value + params["offsets"][id])
             self.commands[id] = f"{value:05}"
 
+    def prepareUpdate(self):
+        self.commands["H10006"] = f"{1:05}"
+        self.setCommand("H10006", 1)
+        return True
+
     def setProgram(self, program):
         try:
             program += 1
