@@ -100,7 +100,11 @@ class Atrea:
         return self.translations
 
     def getTranslations(self):
-        if not self.translations:
+        if (
+            not self.translations
+            or self.translations["params"] == {}
+            or self.translations["words"] == {}
+        ):
             self.translations["params"] = {}
             self.translations["words"] = {}
             response = requests.get(
