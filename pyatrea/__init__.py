@@ -166,6 +166,18 @@ class Atrea:
             txt += chr(int(status["H12" + str(i)]))
         return txt
 
+    def getVersion(self):
+        status = self.getStatus()
+        if int(status["I00022"]) > 0:
+            return status["I00020"] + "." + status["I00021"] + "." + status["I00022"]
+        return status["I00020"] + "." + status["I00021"]
+
+    def getLatestVersion(self):
+        status = self.getStatus()
+        if int(status["I10009"]) > 0:
+            return status["I10007"] + "." + status["I10008"] + "." + status["I10009"]
+        return status["I10007"] + "." + status["I10008"]
+
     def getParams(self, useCache=True):
         if not self.params or not useCache:
             self.params = {}
