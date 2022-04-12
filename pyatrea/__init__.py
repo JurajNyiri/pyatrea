@@ -367,6 +367,21 @@ class Atrea:
             return value
         return None
 
+    def isAtreaUnit(self):
+        response = requests.get(
+            "http://"
+            + self.ip
+            + "/config/login.cgi?magic="
+            + "&"
+            + random.choice(string.ascii_letters)
+            + random.choice(string.ascii_letters)
+        )
+        if response.status_code == 200:
+            xmldoc = ET.fromstring(response.content)
+            if xmldoc.text == "denied":
+                return True
+        return False
+
     def auth(self):
         magic = hashlib.md5(("\r\n" + self.password).encode("utf-8")).hexdigest()
         response = requests.get(
@@ -380,7 +395,7 @@ class Atrea:
         )
         if response.status_code == 200:
             xmldoc = ET.fromstring(response.content)
-            if response.content == "denied":
+            if xmldoc.text == "denied":
                 return False
             else:
                 self.code = xmldoc.text
