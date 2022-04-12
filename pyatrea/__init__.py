@@ -64,6 +64,7 @@ class Atrea:
         self.writable_modes = {}
         self.modesToIds = {}
         self.idsToModes = {}
+        self.configDir = {}
 
     def decompress(self, s):
         dict = {}
@@ -119,6 +120,55 @@ class Atrea:
                         self.parseTranslations(text)
         return self.translations
 
+    def getConfigDir(self):
+        if not self.configDir:
+            self.translations["params"] = {}
+            self.translations["words"] = {}
+            response = requests.get(
+                "http://"
+                + self.ip
+                + "/cfgdir.xml?auth="
+                + self.code
+                + "&"
+                + random.choice(string.ascii_letters)
+                + random.choice(string.ascii_letters)
+            )
+            if response.status_code == 200:
+                self.configDir = ET.fromstring(response.content)
+        return self.configDir
+
+    def getModel(self):
+        status = self.getStatus()
+        configDir = self.getConfigDir()
+
+        data = {}
+        data["main"] = ""
+        data["category"] = ""
+        data["model"] = ""
+
+        for main in configDir:
+            if (
+                "id" in main.attrib
+                and main.attrib["id"].lstrip("0") == status["H10520"]
+            ):
+                data["main"] = main.attrib["name"]
+                for category in main:
+                    if (
+                        "id" in category.attrib
+                        and category.attrib["id"].lstrip("0") == status["H10521"]
+                    ):
+                        data["category"] = category.attrib["name"]
+                        for model in category:
+                            if (
+                                "id" in model.attrib
+                                and model.attrib["id"].lstrip("0") == status["H10522"]
+                            ):
+                                data["model"] = model.attrib["name"]
+                                break
+                        break
+                break
+        return data
+
     def getParams(self, useCache=True):
         if not self.params or not useCache:
             self.params = {}
@@ -161,7 +211,6 @@ class Atrea:
 
     def getStatus(self, useCache=True):
         if not self.status or not useCache:
-            self.status = {}
             response = requests.get(
                 "http://"
                 + self.ip
@@ -190,6 +239,7 @@ class Atrea:
                     ):
                         return False
                 if response.status_code == 200:
+                    self.status = {}
                     xmldoc = ET.fromstring(response.content)
                     parentData = xmldoc[
                         0
