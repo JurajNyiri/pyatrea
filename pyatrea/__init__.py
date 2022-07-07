@@ -15,7 +15,7 @@
 
 import requests
 from xml.etree import ElementTree as ET
-import json
+import demjson3
 import urllib
 import hashlib
 import string
@@ -93,11 +93,11 @@ class Atrea:
 
     def parseTranslations(self, textNode):
         for param in textNode.findall("params"):
-            data = json.decode(param.text)
+            data = demjson3.decode(param.text)
             for dataKey, dataValue in data.items():
                 self.translations["params"][dataKey] = dataValue
         for word in textNode.findall("words"):
-            data = json.decode(word.text)
+            data = demjson3.decode(word.text)
             for dataKey, dataValue in data.items():
                 self.translations["words"][dataKey] = dataValue
         return self.translations
