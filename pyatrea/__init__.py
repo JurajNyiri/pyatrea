@@ -185,9 +185,11 @@ class Atrea:
 
     def getLatestVersion(self):
         status = self.getStatus()
-        if int(status["I10009"]) > 0:
+        if "I10009" in status and int(status["I10009"]) > 0:
             return status["I10007"] + "." + status["I10008"] + "." + status["I10009"]
-        return status["I10007"] + "." + status["I10008"]
+        if "I10007" in status and "I10008" in status:
+            return status["I10007"] + "." + status["I10008"]
+        return "0.0"
 
     def getParams(self, useCache=True):
         if not self.params or not useCache:
