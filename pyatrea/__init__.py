@@ -53,7 +53,7 @@ class AtreaMode(IntEnum):
 
 
 class Atrea:
-    def __init__(self, ip, port="", password="", code=""):
+    def __init__(self, ip, port=80, password="", code=""):
         self.ip = ip
         self.port = port
         self.password = password
