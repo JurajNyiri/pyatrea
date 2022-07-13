@@ -471,7 +471,7 @@ class Atrea:
         return True
 
     def exec(self):
-        url = self.getBaseURL() + "config/xml.cgi?auth=" + self.code
+        url = self.getURL("config/xml.cgi")
 
         if len(self.commands) > 0:
             for register in self.commands:
