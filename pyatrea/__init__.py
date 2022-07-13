@@ -73,6 +73,23 @@ class Atrea:
     def getBaseURL(self):
         return "http://" + self.ip + ":" + str(self.port) + "/"
 
+    def getAuthURL(self):
+        return "auth=" + self.code
+
+    def getURL(self, param):
+        url = self.getBaseURL()
+        if "?" in param:
+            url += param + "&"
+        else:
+            url += param + "?"
+        url += (
+            self.getAuthURL()
+            + "&"
+            + random.choice(string.ascii_letters)
+            + random.choice(string.ascii_letters)
+        )
+        return url
+
     def decompress(self, s):
         dict = {}
         data = list(s)
@@ -113,12 +130,7 @@ class Atrea:
             or self.translations["words"] == {}
         ) and not self.gettingTranslations:
             self.gettingTranslations = True
-            response = requests.get(
-                self.getBaseURL()
-                + "lang/texts_2.xml?"
-                + random.choice(string.ascii_letters)
-                + random.choice(string.ascii_letters)
-            )
+            response = requests.get(self.getURL("lang/texts_2.xml"))
             if response.status_code == 200:
                 xmldoc = ET.fromstring(response.content)
                 if xmldoc.tag == "compress":
@@ -132,14 +144,7 @@ class Atrea:
 
     def getConfigDir(self):
         if not self.configDir:
-            response = requests.get(
-                self.getBaseURL()
-                + "cfgdir.xml?auth="
-                + self.code
-                + "&"
-                + random.choice(string.ascii_letters)
-                + random.choice(string.ascii_letters)
-            )
+            response = requests.get(self.getURL("cfgdir.xml"))
             if response.status_code == 200 and "HTTP: 404 Page" not in response.text:
                 self.configDir = ET.fromstring(response.content)
                 return self.configDir
@@ -174,6 +179,8 @@ class Atrea:
         status = self.getStatus()
         txt = ""
         for i in range(300, 310):
+            if "H12" + str(i) not in status:
+                return False
             txt += chr(int(status["H12" + str(i)]))
         return txt
 
@@ -199,12 +206,7 @@ class Atrea:
             self.params["ids"] = []
             self.params["coefs"] = {}
             self.params["offsets"] = {}
-            response = requests.get(
-                self.getBaseURL()
-                + "user/params.xml?"
-                + random.choice(string.ascii_letters)
-                + random.choice(string.ascii_letters)
-            )
+            response = requests.get(self.getURL("user/params.xml"))
             if response.status_code == 200:
                 xmldoc = ET.fromstring(response.content)
                 for param in xmldoc.findall("params"):
@@ -232,26 +234,12 @@ class Atrea:
 
     def getStatus(self, useCache=True):
         if not self.status or not useCache:
-            response = requests.get(
-                self.getBaseURL()
-                + "config/xml.xml?auth="
-                + self.code
-                + "&"
-                + random.choice(string.ascii_letters)
-                + random.choice(string.ascii_letters)
-            )
+            response = requests.get(self.getURL("config/xml.xml"))
 
             if response.status_code == 200:
                 if "HTTP: 403 Forbidden" in response.text:
                     self.auth()
-                    response = requests.get(
-                        self.getBaseURL()
-                        + "config/xml.xml?auth="
-                        + self.code
-                        + "&"
-                        + random.choice(string.ascii_letters)
-                        + random.choice(string.ascii_letters)
-                    )
+                    response = requests.get(self.getURL("config/xml.xml"))
                     if (
                         response.status_code == 200
                         and "HTTP: 403 Forbidden" in response.text
@@ -317,14 +305,7 @@ class Atrea:
                 else:
                     self.writable_modes[i] = int(binary_writable_modes[7 - i]) != 0
         else:
-            response = requests.get(
-                self.getBaseURL()
-                + "lang/userCtrl.xml?auth="
-                + self.code
-                + "&"
-                + random.choice(string.ascii_letters)
-                + random.choice(string.ascii_letters)
-            )
+            response = requests.get(self.getURL("lang/userCtrl.xml"))
             if response.status_code == 200:
                 xmldoc = ET.fromstring(response.content)
                 modeEcNode = xmldoc.find("./layout/options/op[@id='ModeEC']")
@@ -392,14 +373,7 @@ class Atrea:
 
     def loadUserLabels(self):
         labels = {}
-        response = requests.get(
-            self.getBaseURL()
-            + "config/texts.xml?auth="
-            + self.code
-            + "&"
-            + random.choice(string.ascii_letters)
-            + random.choice(string.ascii_letters)
-        )
+        response = requests.get(self.getURL("config/texts.xml"))
         if response.status_code == 200:
             xmldoc = ET.fromstring(response.content)
             textsNode = xmldoc.find("texts")
@@ -440,7 +414,7 @@ class Atrea:
         return None
 
     def getFrontendVersionFromVer(self):
-        response = requests.get(self.getBaseURL() + "ver.txt")
+        response = requests.get(self.getURL("ver.txt"))
         if response.status_code == 200:
             version = ""
             try:
@@ -459,13 +433,7 @@ class Atrea:
         return False
 
     def isAtreaUnit(self):
-        response = requests.get(
-            self.getBaseURL()
-            + "config/login.cgi?magic="
-            + "&"
-            + random.choice(string.ascii_letters)
-            + random.choice(string.ascii_letters)
-        )
+        response = requests.get(self.getURL("config/login.cgi?magic="))
         if response.status_code == 200:
             xmldoc = ET.fromstring(response.content)
             if xmldoc.text == "denied":
@@ -479,14 +447,8 @@ class Atrea:
 
     def auth(self):
         magic = hashlib.md5(("\r\n" + self.password).encode("utf-8")).hexdigest()
-        response = requests.get(
-            self.getBaseURL()
-            + "config/login.cgi?magic="
-            + magic
-            + "&"
-            + random.choice(string.ascii_letters)
-            + random.choice(string.ascii_letters)
-        )
+        response = requests.get(self.getURL("config/login.cgi?magic=" + magic))
+        print(response.text)  # todo check
         if response.status_code == 200:
             xmldoc = ET.fromstring(response.content)
             if xmldoc.text == "denied":
