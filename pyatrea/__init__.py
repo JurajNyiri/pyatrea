@@ -53,8 +53,9 @@ class AtreaMode(IntEnum):
 
 
 class Atrea:
-    def __init__(self, ip, password, code=""):
+    def __init__(self, ip, port="", password="", code=""):
         self.ip = ip
+        self.port = port
         self.password = password
         self.code = code
         self.translations = {}
@@ -68,6 +69,9 @@ class Atrea:
         self.idsToModes = {}
         self.configDir = {}
         self.gettingTranslations = False
+
+    def getBaseURL(self):
+        return "http://" + self.ip + ":" + str(self.port) + "/"
 
     def decompress(self, s):
         dict = {}
@@ -110,9 +114,8 @@ class Atrea:
         ) and not self.gettingTranslations:
             self.gettingTranslations = True
             response = requests.get(
-                "http://"
-                + self.ip
-                + "/lang/texts_2.xml?"
+                self.getBaseURL()
+                + "lang/texts_2.xml?"
                 + random.choice(string.ascii_letters)
                 + random.choice(string.ascii_letters)
             )
@@ -130,9 +133,8 @@ class Atrea:
     def getConfigDir(self):
         if not self.configDir:
             response = requests.get(
-                "http://"
-                + self.ip
-                + "/cfgdir.xml?auth="
+                self.getBaseURL()
+                + "cfgdir.xml?auth="
                 + self.code
                 + "&"
                 + random.choice(string.ascii_letters)
@@ -192,9 +194,8 @@ class Atrea:
             self.params["coefs"] = {}
             self.params["offsets"] = {}
             response = requests.get(
-                "http://"
-                + self.ip
-                + "/user/params.xml?"
+                self.getBaseURL()
+                + "user/params.xml?"
                 + random.choice(string.ascii_letters)
                 + random.choice(string.ascii_letters)
             )
@@ -226,9 +227,8 @@ class Atrea:
     def getStatus(self, useCache=True):
         if not self.status or not useCache:
             response = requests.get(
-                "http://"
-                + self.ip
-                + "/config/xml.xml?auth="
+                self.getBaseURL()
+                + "config/xml.xml?auth="
                 + self.code
                 + "&"
                 + random.choice(string.ascii_letters)
@@ -239,9 +239,8 @@ class Atrea:
                 if "HTTP: 403 Forbidden" in response.text:
                     self.auth()
                     response = requests.get(
-                        "http://"
-                        + self.ip
-                        + "/config/xml.xml?auth="
+                        self.getBaseURL()
+                        + "config/xml.xml?auth="
                         + self.code
                         + "&"
                         + random.choice(string.ascii_letters)
@@ -308,9 +307,8 @@ class Atrea:
                     self.writable_modes[i] = int(binary_writable_modes[7 - i]) != 0
         else:
             response = requests.get(
-                "http://"
-                + self.ip
-                + "/lang/userCtrl.xml?auth="
+                self.getBaseURL()
+                + "lang/userCtrl.xml?auth="
                 + self.code
                 + "&"
                 + random.choice(string.ascii_letters)
@@ -384,9 +382,8 @@ class Atrea:
     def loadUserLabels(self):
         labels = {}
         response = requests.get(
-            "http://"
-            + self.ip
-            + "/config/texts.xml?auth="
+            self.getBaseURL()
+            + "config/texts.xml?auth="
             + self.code
             + "&"
             + random.choice(string.ascii_letters)
@@ -433,9 +430,8 @@ class Atrea:
 
     def isAtreaUnit(self):
         response = requests.get(
-            "http://"
-            + self.ip
-            + "/config/login.cgi?magic="
+            self.getBaseURL()
+            + "config/login.cgi?magic="
             + "&"
             + random.choice(string.ascii_letters)
             + random.choice(string.ascii_letters)
@@ -444,14 +440,19 @@ class Atrea:
             xmldoc = ET.fromstring(response.content)
             if xmldoc.text == "denied":
                 return True
+            elif (
+                xmldoc.text is None
+                and "HTTP: 404 Page (/config/login.cgi)" in response.text
+            ):
+                response = requests.get(self.getBaseURL() + "ver.txt")
+                return response.status_code == 200
         return False
 
     def auth(self):
         magic = hashlib.md5(("\r\n" + self.password).encode("utf-8")).hexdigest()
         response = requests.get(
-            "http://"
-            + self.ip
-            + "/config/login.cgi?magic="
+            self.getBaseURL()
+            + "config/login.cgi?magic="
             + magic
             + "&"
             + random.choice(string.ascii_letters)
@@ -480,7 +481,7 @@ class Atrea:
         return True
 
     def exec(self):
-        url = "http://" + self.ip + "/config/xml.cgi?auth=" + self.code
+        url = self.getBaseURL() + "config/xml.cgi?auth=" + self.code
 
         if len(self.commands) > 0:
             for register in self.commands:
