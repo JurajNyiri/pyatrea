@@ -57,7 +57,7 @@ class Atrea:
         self.ip = ip
         self.port = port
         self.password = password
-        self.code = code
+        self.code = str(code)
         self.translations = {}
         self.translations["params"] = {}
         self.translations["words"] = {}
@@ -140,8 +140,10 @@ class Atrea:
                 + random.choice(string.ascii_letters)
                 + random.choice(string.ascii_letters)
             )
-            if response.status_code == 200:
+            if response.status_code == 200 and "HTTP: 404 Page" not in response.text:
                 self.configDir = ET.fromstring(response.content)
+                return self.configDir
+            return False
         return self.configDir
 
     def findChild(self, element, id):
@@ -152,6 +154,8 @@ class Atrea:
     def getModel(self):
         status = self.getStatus()
         configDir = self.getConfigDir()
+        if not configDir:
+            return False
 
         data = {}
         data["main"] = ""
@@ -278,7 +282,12 @@ class Atrea:
             if toBeTranslated == "not%20to%20be%20translated":
                 toBeTranslated = translations[param][id]["t"]
         else:
-            toBeTranslated = translations[param][id]["t"]
+            if "t" in translations[param][id] and not isinstance(
+                translations[param][id], str
+            ):
+                toBeTranslated = translations[param][id]["t"]
+            else:
+                toBeTranslated = translations[param][id]
 
         if hasattr(urllib, "parse"):
             return urllib.parse.unquote(toBeTranslated)
@@ -428,6 +437,25 @@ class Atrea:
             return value
         return None
 
+    def getFrontendVersionFromVer(self):
+        response = requests.get(self.getBaseURL() + "ver.txt")
+        if response.status_code == 200:
+            version = ""
+            try:
+                int(response.text[0:2], 16)  # check if response is hexadecimal
+                for i in range(3):
+                    tmp = int(response.text[2 * i : 2 + 2 * i], 16)
+                    if i < 2 or tmp > 0:
+                        version += (
+                            ("" if i == 0 else ".")
+                            + ("0" if tmp < 10 else "")
+                            + str(tmp)
+                        )
+                return version
+            except ValueError:
+                return False
+        return False
+
     def isAtreaUnit(self):
         response = requests.get(
             self.getBaseURL()
@@ -444,8 +472,7 @@ class Atrea:
                 xmldoc.text is None
                 and "HTTP: 404 Page (/config/login.cgi)" in response.text
             ):
-                response = requests.get(self.getBaseURL() + "ver.txt")
-                return response.status_code == 200
+                return True if self.getFrontendVersionFromVer() else False
         return False
 
     def auth(self):
