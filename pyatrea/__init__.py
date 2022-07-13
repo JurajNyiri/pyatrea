@@ -554,7 +554,7 @@ class Atrea:
         mode -= 1
 
         supportedModes = self.getSupportedModes()
-        if not supportedModes[mode]:
+        if not supportedModes[mode] and mode != AtreaMode.OFF:
             return False
 
         if mode in self.modesToIds:
