@@ -448,7 +448,6 @@ class Atrea:
     def auth(self):
         magic = hashlib.md5(("\r\n" + self.password).encode("utf-8")).hexdigest()
         response = requests.get(self.getURL("config/login.cgi?magic=" + magic))
-        print(response.text)  # todo check
         if response.status_code == 200:
             xmldoc = ET.fromstring(response.content)
             if xmldoc.text == "denied":
