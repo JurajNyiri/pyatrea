@@ -13,7 +13,7 @@ python3 -m pip install pyatrea
 ```
 from pyatrea import pyatrea
 
-atrea = pyatrea.Atrea("192.168.0.2","passwordOnAtreaWebsite")
+atrea = pyatrea.Atrea("192.168.0.2",80,"passwordOnAtreaWebsite")
 ```
 
 ### Get status of your unit with human readable identifications (if available):
