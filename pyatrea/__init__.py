@@ -69,6 +69,7 @@ class Atrea:
         self.idsToModes = {}
         self.configDir = {}
         self.gettingTranslations = False
+        self.forcedModes = None
 
     def getBaseURL(self):
         return "http://" + self.ip + ":" + str(self.port) + "/"
@@ -370,6 +371,63 @@ class Atrea:
             return AtreaMode(self.getValue("H10705"))
         elif "H01000" in status:
             return self.idsToModes[self.getValue("H01000")]
+
+    def loadSupportedForcedModes(self):
+        self.forcedModes = {}
+        response = requests.get(self.getURL("lang/userCtrl.xml"))
+        if response.status_code != 200:
+            return False
+
+        xmldoc = ET.fromstring(response.content)
+        node = xmldoc.find("./layout/options/op[@id='ModeText']")
+        if not node:
+            return False
+
+        for option in node:
+            if "title" not in option.attrib:
+                continue
+            title = option.attrib["title"]
+            mode = None
+            if title == "$off":
+                mode = AtreaMode.OFF
+            elif title == "$startUp":
+                mode = AtreaMode.STARTUP
+            elif title == "$runDown":
+                mode = AtreaMode.RUNDOWN
+            elif title == "D1":
+                mode = AtreaMode.D1
+            elif title == "D2":
+                mode = AtreaMode.D2
+            elif title == "D3":
+                mode = AtreaMode.D3
+            elif title == "D4":
+                mode = AtreaMode.D4
+            elif title == "IN1":
+                mode = AtreaMode.IN1
+            elif title == "IN2":
+                mode = AtreaMode.IN2
+            elif title == "$hpDefrosting":
+                mode = AtreaMode.HP_DEFROSTING
+            elif title == "$perVentCirc":
+                mode = AtreaMode.PERIODIC_VENTILATION
+
+            if mode:
+                self.forcedModes[int(option.attrib["id"])] = mode
+
+        return True
+
+    def getSupportedForcedModes(self):
+        if self.forcedModes is None:
+            self.loadSupportedForcedModes()
+        return self.forcedModes
+
+    def getForcedMode(self):
+        status = self.getStatus()
+        if "H10712" in status:
+            value = self.getValue("H10712")
+            if value in self.getSupportedForcedModes():
+                return self.forcedModes[self.getValue("H10712")]
+        return AtreaMode.OFF
 
     def loadUserLabels(self):
         labels = {}
