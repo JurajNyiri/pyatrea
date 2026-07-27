@@ -38,3 +38,11 @@ for alert in params['alert']:
     if status[alert] == "1":
         print(atrea.getTranslation(alert))
 ```
+
+### Execute a one-shot register command:
+This is intended for write-only registers which are not exposed in the unit's
+parameter metadata. Register meanings remain the responsibility of the caller.
+
+```
+atrea.executeOneShotCommand(register_id, value)
+```

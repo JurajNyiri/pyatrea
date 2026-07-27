@@ -538,6 +538,31 @@ class Atrea:
             return response.status_code == 200
         return False
 
+    def executeOneShotCommand(self, register, value=1):
+        """Execute a register command without adding it to the command queue."""
+        if (
+            not isinstance(register, str)
+            or len(register) != 6
+            or not register[0].isalpha()
+            or not register[1:].isdigit()
+            or not isinstance(value, int)
+            or value < 0
+            or value > 65535
+        ):
+            return False
+
+        command = register + f"{value:05}"
+        response = requests.get(self.getURL("config/xml.cgi") + "&" + command)
+
+        if response.status_code == 200 and "HTTP: 403 Forbidden" in response.text:
+            self.auth()
+            response = requests.get(self.getURL("config/xml.cgi") + "&" + command)
+
+        return (
+            response.status_code == 200
+            and "HTTP: 403 Forbidden" not in response.text
+        )
+
     def setTemperature(self, temperature):
         try:
             temperature += 1
